@@ -201,3 +201,45 @@ docker exec -it mysql mysql -uroot -p123456 -e "USE master; SELECT * FROM usuari
 ```
 
 ![Criando backup mysqldump](screenshots/cenario2/backup-mysqldump.png)
+
+---
+
+### Cenario 3
+
+Neste cenário, foi utilizado o recurso de **Bind Mount** para compartilhar um diretório do sistema Ubuntu com um container Docker. Dessa forma, os arquivos criados no host ficam acessíveis dentro do container, e os arquivos criados dentro do container também aparecem no diretório local.
+
+Primeiro, foi criado um diretório no Ubuntu para ser utilizado como pasta compartilhada. Em seguida, foi criado um arquivo de teste diretamente pelo terminal do host.
+
+```bash
+mkdir -p docker
+
+echo "Arquivo criado" > docker/arquivo.txt
+```
+
+![Arquivo](screenshots/cenario3/arquivo.png)
+
+Depois disso, foi iniciado um container Ubuntu utilizando o diretório local docker montado dentro do caminho /app no container. Com isso, foi possível acessar dentro do container o arquivo criado anteriormente no host.
+
+```bash
+docker run -it --rm \
+  --name bind-dev \
+  -v $(pwd)/docker:/app \
+  ubuntu:22.04 \
+  bash
+
+ls -la /app
+cat /app/arquivo.txt
+echo "Arquivo no container" > /app/container.txt
+exit
+```
+
+![Container](screenshots/cenario3/container.png)
+
+Por fim, foi feita a validação no sistema host para confirmar se o arquivo criado dentro do container também ficou disponível no diretório local. Esse teste comprova que o bind mount permite a troca de arquivos entre o container e o sistema operacional.
+
+```bash
+ls -la docker
+cat docker/dev-files/container.txt
+```
+
+![Validando arquivos](screenshots/cenario3/validando-arquivos.png)
