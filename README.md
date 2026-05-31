@@ -116,3 +116,88 @@ sudo docker exec -it mysql mysql -uroot -p123456 -e "USE master; SELECT * FROM u
 ```
 
 ![Dados Existentes](screenshots/cenario1/dados-existentes.png)
+
+---
+
+### Cenario 2
+
+Neste cenário, foi realizada a criação de backups do banco de dados utilizando duas abordagens diferentes: o backup físico do volume Docker e o backup lógico com `mysqldump`.
+
+O primeiro backup foi feito diretamente a partir do volume `mysql-prod-data`, compactando os arquivos armazenados nele em um arquivo `.tar.gz`. Essa forma de backup preserva os arquivos físicos utilizados pelo MySQL dentro do volume.
+
+
+```bash
+docker run --rm \
+  -v mysql-prod-data:/volume \
+  -v $(pwd)/backups:/backup \
+  alpine \
+  tar czf /backup/mysql-prod-data-backup.tar.gz -C /volume .
+```
+```bash
+docker exec mysql mysqldump -uroot -p123456 master > backups/infra_db_dump.sql
+```
+
+![Criando backup](screenshots/cenario2/criando-backup.png)
+
+Após a criação dos backups, foi simulada uma perda de dados. Para isso, o container MySQL foi parado e removido, e o volume utilizado para armazenar os dados também foi excluído.
+
+
+```bash
+docker stop mysql-prod
+docker rm mysql-prod
+docker volume rm mysql-prod-data
+```
+
+![Removendo container e volume](screenshots/cenario2/removendo-volume-container.png)
+
+Em seguida, foi criado novamente o volume mysql-prod-data, porém vazio. Depois disso, foi feita a restauração do backup físico, extraindo o arquivo .tar.gz para dentro do novo volume.
+
+```bash
+docker volume create mysql-prod-data
+
+docker run --rm \
+  -v mysql-prod-data:/volume \
+  -v $(pwd)/backups:/backup \
+  alpine \
+  sh -c "tar xzf /backup/mysql-prod-data-backup.tar.gz -C /volume"
+
+docker run -d \
+  --name mysql \
+  -e MYSQL_ROOT_PASSWORD=root123 \
+  -v mysql-prod-data:/var/lib/mysql \
+  -p 3306:3306 \
+  mysql:8.0
+```
+
+Depois da restauração física, foi feita uma consulta no banco para verificar se os dados estavam disponíveis novamente.
+```bash
+docker exec -it mysql mysql -uroot -p123456 -e "USE master; SELECT * FROM usuarios;"
+```
+
+![Criando backup fisico](screenshots/cenario2/backup-fisico.png)
+
+Na segunda forma de restauração, foi utilizado o backup gerado pelo mysqldump. Primeiro, o ambiente foi limpo novamente, removendo o container e o volume, para simular uma nova recuperação partindo de um ambiente vazio.
+
+```bash
+docker stop mysql-prod
+docker rm mysql-prod
+docker volume rm mysql-prod-data
+docker volume create mysql-prod-data
+
+docker run -d \
+  --name mysql \
+  -e MYSQL_ROOT_PASSWORD=root123 \
+  -e MYSQL_DATABASE=master \
+  -v mysql-prod-data:/var/lib/mysql \
+  -p 3306:3306 \
+  mysql:8.0
+
+docker exec -i mysql mysql -uroot -p123456 master < backups/infra_db_dump.sql
+```
+
+Após importar o arquivo .sql, foi feita a validação dos dados dentro da tabela usuarios, confirmando que o conteúdo do banco foi restaurado corretamente.
+```bash
+docker exec -it mysql mysql -uroot -p123456 -e "USE master; SELECT * FROM usuarios;"
+```
+
+![Criando backup mysqldump](screenshots/cenario2/backup-mysqldump.png)
