@@ -293,3 +293,38 @@ cat /shared/mensagem.txt
 ```
 
 ![produtor criando arquivo e consumidor lendo](screenshots/cenario4/criando-arquivo-e-lendo.png)
+
+---
+
+### Cenario 5
+
+Introduzir automação operacional por meio de scripts Bash
+
+O script backup.sh automatiza o processo de backup do volume Docker mysql-prod-data. Ele gera um arquivo compactado .tar.gz contendo os dados do volume e também cria um arquivo de log com as informações da execução.
+
+```bash
+nano scripts/backup.sh
+
+chmod +x scripts/backup.sh
+
+./scripts/backup.sh
+
+ls -lh backups/
+cat backups/backup_*.log
+```
+
+![script backup](screenshots/cenario5/script-backup.png)
+
+O restore.sh é o script responsável por restaurar um backup de volume Docker a partir de um arquivo .tar.gz.
+
+Ele complementa o backup.sh: enquanto o backup.sh gera o backup, o restore.sh recupera esse backup dentro de um volume Docker.
+
+```bash
+nano scripts/restore.sh
+
+chmod +x scripts/restore.sh
+
+./scripts/restore.sh backups/mysql-prod-data_YYYYMMDD_HHMMSS.tar.gz
+```
+
+![script-restore.png](screenshots/cenario5/script-restore.png)
