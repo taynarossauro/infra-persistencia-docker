@@ -243,3 +243,53 @@ cat docker/dev-files/container.txt
 ```
 
 ![Validando arquivos](screenshots/cenario3/validando-arquivos.png)
+
+---
+
+### Cenario 4
+
+Criar container produtor e criando arquivo compartilhado
+
+```bash
+docker volume create shared-data
+
+docker run -it --name produtor \
+  -v shared-data:/shared \
+  ubuntu:22.04 \
+  bash
+
+echo "Mensagem criada pelo container produtor" > /shared/mensagem.txt
+cat /shared/mensagem.txt
+```
+
+![Arquivo produtor](screenshots/cenario4/arquivo-produtor.png)
+
+Criar container consumidor e lendo arquivo compartilhado do produtor
+
+```bash
+docker run -it --name consumidor \
+  -v shared-data:/shared \
+  ubuntu:22.04 \
+  bash
+
+ls -la /shared
+cat /shared/mensagem.txt
+```
+
+![Consumindo arquivo](screenshots/cenario4/consumindo-arquivo.png)
+
+Testar compartilhamento em tempo real com produtor e consumidor simultaneo
+
+terminal 1 produtor
+```bash
+docker start -ai produtor
+echo "Atualização em tempo real" >> /shared/mensagem.txt
+```
+
+terminal 2 consumidor
+```bash
+docker start -ai consumidor
+cat /shared/mensagem.txt
+```
+
+![produtor criando arquivo e consumidor lendo](screenshots/cenario4/criando-arquivo-e-lendo.png)
